@@ -68,7 +68,7 @@ endif
 COMPCERT ?= platform
 ZLIST ?= bundled
 ARCH ?= 
-BITSIZE ?=
+BITSIZE ?= 64
 
 # # Internal variables #
 # Set to true if the bundled CompCert is used
@@ -268,9 +268,9 @@ endif
 # ########## Flags ##########
 
 ifeq ($(ZLIST),platform)
-  VSTDIRS= msl sepcomp veric floyd $(PROGSDIR) concurrency ccc26x86 atomics
+  VSTDIRS= shared msl sepcomp veric floyd $(PROGSDIR) concurrency ccc26x86 atomics lithium
 else
-  VSTDIRS= msl sepcomp veric zlist floyd $(PROGSDIR) concurrency ccc26x86 atomics
+  VSTDIRS= shared msl sepcomp veric zlist floyd $(PROGSDIR) concurrency ccc26x86 atomics lithium
 endif
 OTHERDIRS= wand_demo sha hmacfcf tweetnacl20140427 hmacdrbg aes mailbox boringssl_fips_20180730
 DIRS = $(VSTDIRS) $(OTHERDIRS)
@@ -281,7 +281,7 @@ COMPCERTDIRS=lib common $(ARCHDIRS) cfrontend export $(BACKEND)
 
 ifeq ($(COMPCERT_EXPLICIT_PATH),true)
   COMPCERT_R_FLAGS= $(foreach d, $(COMPCERTDIRS), -R $(COMPCERT_INST_DIR)/$(d) compcert.$(d)) $(FLOCQ)
-  EXTFLAGS= $(foreach d, $(COMPCERTDIRS), -Q $(COMPCERT_INST_DIR)/$(d) compcert.$(d)) $(FLOCQ)
+  EXTFLAGS= $(foreach d, $(COMPCERTDIRS), -Q $(COMPCERT_INST_DIR)/$(d) compcert.$(d)) $(FLOCQ) -Q ora/theories iris_ora
 else
   COMPCERT_R_FLAGS=
   EXTFLAGS=
@@ -325,6 +325,12 @@ ifdef MATHCOMP
 EXTFLAGS:=$(EXTFLAGS) -R $(MATHCOMP) mathcomp
 endif
 
+# ##### ORA Flags #####
+
+ifneq ($(wildcard ora/theories),)
+EXTFLAGS:=$(EXTFLAGS) -Q ora/theories iris_ora
+endif
+
 # ##### Flag summary #####
 
 COQFLAGS=$(foreach d, $(VSTDIRS), $(if $(wildcard $(d)), -Q $(d) VST.$(d))) $(foreach d, $(OTHERDIRS), $(if $(wildcard $(d)), -Q $(d) $(d))) $(EXTFLAGS) $(SHIM) # -Q ../stdpp/theories stdpp -Q ../iris/iris iris -Q ../InteractionTrees/theories ITree -Q ../paco/src Paco -Q ../coq-ext-lib/theories ExtLib -Q ../fcf/src/fcf FCF
@@ -357,25 +363,21 @@ $(info =================================)
 # ########## File Lists ##########
 
 MSL_FILES = \
-  Axioms.v Extensionality.v base.v eq_dec.v sig_isomorphism.v \
-  ageable.v sepalg.v psepalg.v age_sepalg.v \
-  sepalg_generators.v functors.v sepalg_functors.v combiner_sa.v \
-  cross_split.v join_hom_lemmas.v cjoins.v \
+  Axioms.v Extensionality.v base.v eq_dec.v \
+  sepalg.v sepalg_generators.v psepalg.v \
   boolean_alg.v tree_shares.v shares.v pshares.v \
-  knot.v knot_prop.v \
-  knot_lemmas.v knot_unique.v \
-  knot_hered.v \
-  knot_full.v knot_full_variant.v knot_shims.v knot_full_sa.v \
-  corable.v corable_direct.v \
-  predicates_hered.v predicates_sl.v subtypes.v subtypes_sl.v \
-  contractive.v predicates_rec.v \
-  msl_direct.v msl_standard.v msl_classical.v \
-  predicates_sa.v \
-  normalize.v \
-  env.v corec.v Coqlib2.v sepalg_list.v op_classes.v \
-  simple_CCC.v seplog.v alg_seplog.v alg_seplog_direct.v log_normalize.v \
-  ghost.v ghost_seplog.v \
-  iter_sepcon.v ramification_lemmas.v wand_frame.v wandQ_frame.v #age_to.v
+  Coqlib2.v sepalg_list.v
+
+ORA_FILES = \
+  theories/algebra/ora.v theories/algebra/excl.v theories/algebra/osum.v \
+  theories/algebra/agree.v theories/algebra/gmap.v theories/algebra/functions.v \
+  theories/algebra/dfrac.v theories/algebra/ext_order.v theories/algebra/view.v \
+  theories/algebra/auth.v theories/algebra/excl_auth.v theories/algebra/frac_auth.v \
+  theories/algebra/gmap_view.v theories/logic/oupred.v theories/logic/algebra.v \
+  theories/logic/iprop.v theories/logic/derived.v theories/logic/own.v \
+  theories/logic/proofmode.v theories/logic/logic.v theories/logic/wsat.v \
+  theories/logic/later_credits.v theories/logic/fancy_updates.v theories/logic/invariants.v \
+  theories/logic/cancelable_invariants.v theories/logic/weakestpre.v theories/logic/ghost_map.v
 
 SEPCOMP_FILES = \
   Address.v \
@@ -470,18 +472,18 @@ LINKING_FILES= \
   finfun.v
 
 VERIC_FILES= \
-  base.v Clight_base.v val_lemmas.v Memory.v shares.v splice.v compspecs.v rmaps.v rmaps_lemmas.v compcert_rmaps.v Cop2.v juicy_base.v type_induction.v composite_compute.v align_mem.v change_compspecs.v \
+  base.v Clight_base.v val_lemmas.v Memory.v shares.v compspecs.v juicy_base.v type_induction.v composite_compute.v align_mem.v change_compspecs.v \
   tycontext.v lift.v expr.v expr2.v environ_lemmas.v \
   binop_lemmas.v binop_lemmas2.v binop_lemmas3.v binop_lemmas4.v binop_lemmas5.v binop_lemmas6.v \
   expr_lemmas.v expr_lemmas2.v expr_lemmas3.v expr_lemmas4.v \
   extend_tc.v \
   Clight_lemmas.v Clight_core.v  \
-  slice.v res_predicates.v own.v seplog.v Clight_seplog.v mapsto_memory_block.v Clight_mapsto_memory_block.v assert_lemmas.v Clight_assert_lemmas.v \
-  juicy_mem.v juicy_mem_lemmas.v local.v juicy_mem_ops.v juicy_safety.v juicy_extspec.v \
+  slice.v res_predicates.v seplog.v Clight_seplog.v mapsto_memory_block.v Clight_mapsto_memory_block.v assert_lemmas.v Clight_assert_lemmas.v \
+  juicy_mem.v juicy_mem_lemmas.v local.v juicy_extspec.v \
   semax.v semax_lemmas.v semax_conseq.v semax_call.v semax_straight.v semax_loop.v semax_switch.v \
   initial_world.v Clight_initial_world.v initialize.v semax_prog.v semax_ext.v SeparationLogic.v SeparationLogicSoundness.v  \
-  NullExtension.v SequentialClight.v SequentialClight2.v tcb.v superprecise.v jstep.v address_conflict.v valid_pointer.v coqlib4.v \
-  semax_ext_oracle.v mem_lessdef.v Clight_mem_lessdef.v age_to_resource_at.v aging_lemmas.v Clight_aging_lemmas.v ghost_PCM.v mpred.v ghosts.v invariants.v
+  NullExtension.v SequentialClight.v tcb.v jstep.v address_conflict.v valid_pointer.v coqlib4.v \
+  mem_lessdef.v Clight_mem_lessdef.v mpred.v
 
 ZLIST_FILES= \
   sublist.v Zlength_solver.v list_solver.v
@@ -495,7 +497,7 @@ FLOYD_FILES= \
    client_lemmas.v canon.v canonicalize.v closed_lemmas.v jmeq_lemmas.v \
    compare_lemmas.v sc_set_load_store.v \
    loadstore_mapsto.v loadstore_field_at.v field_compat.v nested_loadstore.v \
-   call_lemmas.v extcall_lemmas.v forward_lemmas.v funspec_old.v forward.v \
+   call_lemmas.v extcall_lemmas.v forward_lemmas.v forward.v \
    entailer.v globals_lemmas.v \
    local2ptree_denote.v local2ptree_eval.v local2ptree_typecheck.v \
    fieldlist.v mapsto_memory_block.v\
@@ -504,8 +506,10 @@ FLOYD_FILES= \
    for_lemmas.v semax_tactics.v diagnosis.v simple_reify.v simpl_reptype.v \
    freezer.v deadvars.v Clightnotations.v unfold_data_at.v hints.v reassoc_seq.v \
    SeparationLogicAsLogicSoundness.v SeparationLogicAsLogic.v SeparationLogicFacts.v \
-   subsume_funspec.v linking.v data_at_lemmas.v Funspec_old_Notation.v assoclists.v VSU.v VSU_DrySafe.v quickprogram.v PTops.v Component.v QPcomposite.v \
-   data_at_list_solver.v step.v fastforward.v finish.v
+   subsume_funspec.v linking.v data_at_lemmas.v Funspec_old_Notation.v assoclists.v VSU.v quickprogram.v PTops.v Component.v QPcomposite.v \
+   data_at_list_solver.v step.v fastforward.v finish.v \
+   compat.v
+#  VSU_DrySafe.v \   # does not yet work in VST 3.x 
 #real_forward.v
 
 
@@ -633,6 +637,7 @@ C_FILES = $(SINGLE_C_FILES) $(LINKED_C_FILES)
 FILES = \
  veric/version.v \
  $(MSL_FILES:%=msl/%) \
+ $(ORA_FILES:%=ora/%) \
  $(SEPCOMP_FILES:%=sepcomp/%) \
  $(VERIC_FILES:%=veric/%) \
  $(FLOYD_FILES:%=floyd/%) \
@@ -682,11 +687,6 @@ INSTALL_FILES_SRC=$(shell COMPCERT=$(COMPCERT) COMPCERT_INST_DIR=$(COMPCERT_INST
 INSTALL_FILES_VO=$(patsubst %.v,%.vo,$(INSTALL_FILES_SRC))
 INSTALL_FILES=$(sort $(INSTALL_FILES_SRC) $(INSTALL_FILES_VO))
 
-IRIS_INSTALL_FILES_BASE=$(shell COMPCERT=$(COMPCERT) COMPCERT_INST_DIR=$(COMPCERT_INST_DIR) ZLIST=$(ZLIST) BITSIZE=$(BITSIZE) ARCH=$(ARCH) IGNORECOQVERSION=$(IGNORECOQVERSION) IGNORECOMPCERTVERSION=$(IGNORECOMPCERTVERSION) MAKE=$(MAKE) util/calc_install_files atomics)
-IRIS_INSTALL_FILES_SRC=$(filter-out $(INSTALL_FILES_SRC),$(IRIS_INSTALL_FILES_BASE))
-IRIS_INSTALL_FILES_VO=$(patsubst %.v,%.vo,$(IRIS_INSTALL_FILES_SRC))
-IRIS_INSTALL_FILES=$(sort $(IRIS_INSTALL_FILES_SRC) $(IRIS_INSTALL_FILES_VO))
-
 # ########## Rules ##########
 
 %_stripped.v: %.v
@@ -726,15 +726,15 @@ endif
 # ########## Targets ##########
 
 default_target: vst $(PROGSDIR)
-vst: _CoqProject msl veric floyd simpleconc
+vst: _CoqProject msl veric ora floyd simpleconc
 
 ifeq ($(BITSIZE),64)
 test: vst progs64
 	@# need this tab here to turn of special behavior of 'test' target
 test2: io
 test4: mailbox 
-test6: VSUpile64
-tests: test test2 test4 test6
+test5: VSUpile
+tests: test test2 test4 test5
 all: tests
 else
 test: vst progs
@@ -742,7 +742,7 @@ test: vst progs
 test2: io
 test3: sha hmac 
 test5: VSUpile
-tests: test test2 test3 test5 test6
+tests: test test2 test3 test5
 all: vst files tests hmacdrbg tweetnacl aes
 endif
 
@@ -752,8 +752,9 @@ files: _CoqProject $(FILES:.v=.vo)
 #
 # Add conclib_coqlib, conclib_sublist, and conclib_veric to the targets
 #
-simpleconc: concurrency/conclib.vo concurrency/ghosts.vo atomics/verif_lock.vo
+simpleconc: concurrency/conclib.vo atomics/verif_lock.vo
 msl:     _CoqProject $(MSL_FILES:%.v=msl/%.vo)
+ora:     _CoqProject $(ORA_FILES:%.v=ora/%.vo)
 sepcomp: _CoqProject $(CC_TARGET) $(SEPCOMP_FILES:%.v=sepcomp/%.vo)
 concurrency: _CoqProject $(CC_TARGET) $(SEPCOMP_FILES:%.v=sepcomp/%.vo) $(CONCUR_FILES:%.v=concurrency/%.vo)
 linking: _CoqProject $(LINKING_FILES:%.v=linking/%.vo)
@@ -799,18 +800,11 @@ VST.config:
 # This is not ideal but otherwise it gets tricky to handle variants
 install: VST.config
 	install -d "$(INSTALLDIR)"
+	install -d "$(INSTALLDIR)"
 	for d in $(sort $(dir $(INSTALL_FILES) $(EXTRA_INSTALL_FILES))); do install -d "$(INSTALLDIR)/$$d"; done
 	for f in $(INSTALL_FILES); do install -m 0644 $$f "$(INSTALLDIR)/$$(dirname $$f)"; done
 	for f in $(EXTRA_INSTALL_FILES); do install -m 0644 $$f "$(INSTALLDIR)/$$(dirname $$f)"; done
-
-build-iris: _CoqProject
-	$(COQC) $(COQFLAGS) $(PROGSDIR)/incr.v
-	for f in $(IRIS_INSTALL_FILES_SRC); do if [ "$${f##*.}" = "v" ]; then echo COQC $$f; $(COQC) $(COQFLAGS) $$f; fi; done
-
-install-iris: VST.config
-	install -d "$(INSTALLDIR)"
-	for d in $(sort $(dir $(IRIS_INSTALL_FILES))); do install -d "$(INSTALLDIR)/$$d"; done
-	for f in $(IRIS_INSTALL_FILES); do install -m 0644 $$f "$(INSTALLDIR)/$$(dirname $$f)"; done
+	cd ora; $(MAKE) install
 
 dochtml:
 	mkdir -p doc/html
@@ -895,6 +889,9 @@ ifneq ($(wildcard InteractionTrees/theories),)
 #	$(COQDEP) -Q coq-ext-lib/theories ExtLib -Q paco/src Paco -Q InteractionTrees/theories ITree InteractionTrees/theories >>.depend
 	$(COQDEP) -Q paco/src Paco -Q InteractionTrees/theories ITree InteractionTrees/theories >>.depend
 endif
+ifneq ($(wildcard ora/theories),)
+	$(COQDEP) -Q ora/theories iris_ora ora/theories >>.depend
+endif
 ifneq ($(wildcard fcf/src/FCF),)
 	$(COQDEP) -Q fcf/src/FCF FCF fcf/src/FCF/*.v >>.depend
 endif
@@ -908,6 +905,7 @@ clean:
 	rm -f progs/VSUpile/{*,*/*}.{vo,vos,vok,glob}
 	rm -f progs64/VSUpile/{*,*/*}.{vo,vos,vok,glob}
 	rm -f progs/memmgr/*.{vo,vos,vok,glob}
+	rm -f ora/theories/*/*.{vo,vos,vok,glob}
 	rm -f coq-ext-lib/theories/*.{vo,vos,vok,glob} InteractionTrees/theories/{*,*/*}.{vo,vos,vok,glob}
 	rm -f paco/src/*.{vo,vos,vok,glob}
 	rm -f fcf/src/FCF/*.{vo,vos,vok,glob}
@@ -943,9 +941,7 @@ progs64v: progs64c $(V64_ORDINARY:%.v=progs64/%.v) $(C64_ORDINARY:%.c=progs64/%.
 progs64: _CoqProject  $(PROGS64_FILES:%.v=progs64/%.vo)
 
 VSUpile: floyd/proofauto.vo floyd/library.vo floyd/VSU.vo
-	cd progs/VSUpile; $(MAKE) VST_LOC=../..
-VSUpile64: floyd/proofauto.vo floyd/library.vo floyd/VSU.vo
-	cd progs64/VSUpile; $(MAKE) VST_LOC=../..
+	cd $(PROGSDIR)/VSUpile; $(MAKE) VST_LOC=../..
 memmgr:  floyd/proofauto.vo floyd/library.vo floyd/VSU.vo
 	cd progs/memmgr; $(MAKE) VST_LOC=../..
 
